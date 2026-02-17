@@ -41,7 +41,7 @@ pipeline {
               -v "$JENKINS_VOL":/var/jenkins_home \
               -w /var/jenkins_home/workspace/Playwright \
               mcr.microsoft.com/playwright:v1.58.2-jammy \
-              bash -lc 'npm ci && npx playwright test --list && npx playwright test tests/regression --reporter=html'
+              bash -lc 'npm ci && npx playwright test --list && npx playwright test tests --reporter=html'
           '''
         }
       }
