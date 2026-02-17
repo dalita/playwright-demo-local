@@ -26,8 +26,8 @@ pipeline {
           docker run --rm \
             -v "$JENKINS_VOL":/var/jenkins_home \
             -w /var/jenkins_home/workspace/Playwright \
-            mcr.microsoft.com/playwright:v1.50.0-jammy \
-            bash -lc 'pwd && ls -la && npm ci && npx playwright test --reporter=html'
+            mcr.microsoft.com/playwright:v1.58.2-jammy \
+            bash -lc 'npm ci && npx playwright test --reporter=html'
         '''
       }
     }
