@@ -1,11 +1,5 @@
 pipeline {
-  agent {
-    docker {
-      image 'mcr.microsoft.com/playwright:v1.50.0-jammy'
-      args '-u root:root'
-    }
-  }
-
+  agent any
   options { timestamps() }
 
   stages {
@@ -13,17 +7,18 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Install') {
+    stage('Regression (Playwright in Docker)') {
       steps {
-        sh 'node -v'
-        sh 'npm -v'
-        sh 'npm ci || npm install'
-      }
-    }
+        sh '''
+          set -e
+          docker --version
 
-    stage('Regression') {
-      steps {
-        sh 'npx playwright test --reporter=html'
+          docker run --rm \
+            -v "$PWD":/work \
+            -w /work \
+            mcr.microsoft.com/playwright:v1.50.0-jammy \
+            bash -lc "npm ci || npm install && npx playwright test --reporter=html"
+        '''
       }
     }
 
