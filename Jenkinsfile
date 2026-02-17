@@ -29,20 +29,25 @@ pipeline {
             set -e
             docker --version
 
-            echo "Workspace host: $(pwd)"
-            ls -la
-            ls -la tests || true
-            ls -la tests/regression || true
+            # Detecta el volumen real donde vive /var/jenkins_home
+            JENKINS_VOL="$(docker volume ls -q | grep -E 'jenkins_home$|_jenkins_home$' | head -n 1)"
+            echo "Using Jenkins volume: $JENKINS_VOL"
+            test -n "$JENKINS_VOL"
 
             docker run --rm \
               -e BASE_URL="$BASE_URL" \
               -e BROWSER="$BROWSER" \
               -e GREP="$GREP" \
               -e CI="$CI" \
-              -v "$(pwd)":/work \
-              -w /work \
+              -v "$JENKINS_VOL":/var/jenkins_home \
+              -w /var/jenkins_home/workspace/Playwright \
               mcr.microsoft.com/playwright:v1.58.2-jammy \
-              bash -lc 'npm ci && npx playwright test --list && ( [ -n "$GREP" ] && npx playwright test tests/regression --project="$BROWSER" --grep "$GREP" --reporter=html || npx playwright test tests/regression --project="$BROWSER" --reporter=html )'
+              bash -lc 'ls -la && npm ci && npx playwright test --list && \
+                if [ -n "$GREP" ]; then \
+                  npx playwright test tests/regression --project="$BROWSER" --grep "$GREP" --reporter=html; \
+                else \
+                  npx playwright test tests/regression --project="$BROWSER" --reporter=html; \
+                fi'
           '''
         }
       }
@@ -56,8 +61,7 @@ pipeline {
           reportName: 'Playwright Regression',
           keepAll: true,
           alwaysLinkToLastBuild: true,
-          allowMissing: false,
-          alwaysLinkToLastBuild: true
+          allowMissing: false
         ])
       }
     }
