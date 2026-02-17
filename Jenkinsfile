@@ -7,11 +7,13 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Regression (Playwright in Docker)') {
+    stage('Regression (Playwright via Docker)') {
       steps {
         sh '''
           set -e
           docker --version
+
+          docker pull mcr.microsoft.com/playwright:v1.50.0-jammy
 
           docker run --rm \
             -v "$PWD":/work \
