@@ -1,6 +1,12 @@
 pipeline {
   agent any
   options { timestamps() }
+  parameters {
+    string(name: 'BASE_URL', defaultValue: 'https://playwright.dev', description: 'URL base de pruebas')
+    choice(name: 'BROWSER', choices: ['chromium', 'firefox', 'webkit'], description: 'Browser a ejecutar')
+    string(name: 'GREP', defaultValue: '', description: 'Filtro por tag (ej: @regression)')
+  }
+
 
   stages {
     stage('Clean Workspace') {
@@ -12,25 +18,25 @@ pipeline {
     }
 
     stage('Regression (Playwright via Docker)') {
-      steps {
-        sh '''
-          set -e
-          docker --version
+  steps {
+    sh """
+      set -e
+      docker --version
 
-          # Detecta el volumen real donde vive /var/jenkins_home (jenkins_home)
-          JENKINS_VOL="$(docker volume ls -q | grep -E 'jenkins_home$|_jenkins_home$' | head -n 1)"
-          echo "Using Jenkins volume: $JENKINS_VOL"
-          test -n "$JENKINS_VOL"
+      JENKINS_VOL="\$(docker volume ls -q | grep -E 'jenkins_home$|_jenkins_home$' | head -n 1)"
+      echo "Using Jenkins volume: \$JENKINS_VOL"
+      test -n "\$JENKINS_VOL"
 
-          # Corre Playwright usando el workspace real dentro del volumen
-          docker run --rm \
-            -v "$JENKINS_VOL":/var/jenkins_home \
-            -w /var/jenkins_home/workspace/Playwright \
-            mcr.microsoft.com/playwright:v1.58.2-jammy \
-            bash -lc 'npm ci && npx playwright test --reporter=html'
-        '''
-      }
-    }
+      docker run --rm \
+        -e BASE_URL="${params.BASE_URL}" \
+        -e BROWSER="${params.BROWSER}" \
+        -v "\$JENKINS_VOL":/var/jenkins_home \
+        -w /var/jenkins_home/workspace/Playwright \
+        mcr.microsoft.com/playwright:v1.58.2-jammy \
+        bash -lc "npm ci && npx playwright test --list && npx playwright test tests/regression --reporter=html"
+    """
+  }
+}
 
    stage('Publish report') {
         steps {
