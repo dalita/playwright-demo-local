@@ -32,15 +32,18 @@ pipeline {
       }
     }
 
-    stage('Publish report') {
-      steps {
-        publishHTML([
-          reportDir: 'playwright-report',
-          reportFiles: 'index.html',
-          reportName: 'Playwright Regression'
-        ])
-      }
-    }
+   stage('Publish report') {
+        steps {
+            publishHTML(target: [
+            reportDir: 'playwright-report',
+            reportFiles: 'index.html',
+            reportName: 'Playwright Regression',
+            keepAll: true,
+            alwaysLinkToLastBuild: true,
+            allowMissing: false
+            ])
+        }
+        }
   }
 
   post {
