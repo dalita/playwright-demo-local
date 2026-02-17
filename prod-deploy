@@ -1,0 +1,70 @@
+pipeline {
+  agent any
+  options { timestamps() }
+
+  parameters {
+    choice(name: 'ENV', choices: ['prod'], description: 'Ambiente')
+    string(name: 'APP_VERSION', defaultValue: '1.0.0', description: 'Versión a desplegar')
+  }
+
+  stages {
+    stage('Approval') {
+      steps {
+        input message: "¿Confirmas deploy a ${params.ENV} versión ${params.APP_VERSION}?"
+      }
+    }
+
+    stage('Deploy to PROD') {
+      steps {
+        sh '''
+          set -e
+          echo "Deploying version ${APP_VERSION} to ${ENV}..."
+          # EJEMPLO: tu deploy real
+          # terraform apply -var env=prod
+          # kubectl apply -f k8s/
+          # aws apigateway create-deployment ...
+          sleep 3
+          echo "Deploy OK"
+        '''
+      }
+    }
+
+    stage('Healthcheck') {
+      steps {
+        sh '''
+          set -e
+          echo "Healthcheck..."
+          # curl -fsS https://tu-prod.com/health
+          sleep 1
+          echo "Health OK"
+        '''
+      }
+    }
+
+    stage('Post-Deploy Smoke (block)') {
+      steps {
+        build job: 'regression-prod',
+          wait: true,
+          propagate: true,
+          parameters: [
+            string(name: 'BASE_URL', value: 'https://tu-prod.com'),
+            string(name: 'BROWSER', value: 'chromium'),
+            string(name: 'SUITE', value: 'prod_smoke')
+          ]
+      }
+    }
+
+    // stage('Post-Deploy Smoke (async)') {
+    //     steps {
+    //         build job: 'regression-prod',
+    //         wait: false,
+    //         propagate: false,
+    //         parameters: [
+    //             string(name: 'BASE_URL', value: 'https://tu-prod.com'),
+    //             string(name: 'BROWSER', value: 'chromium'),
+    //             string(name: 'SUITE', value: 'prod_smoke')
+    //         ]
+    //     }
+    // }
+  }
+}

@@ -1,0 +1,49 @@
+pipeline {
+  agent any
+  options { timestamps() }
+
+  parameters {
+    string(name: 'BASE_URL', defaultValue: 'https://tu-prod.com', description: 'URL PROD')
+    choice(name: 'BROWSER', choices: ['chromium','firefox','webkit'], description: 'Browser')
+    choice(name: 'SUITE', choices: ['prod_smoke','prod_regression'], description: 'Suite por tags')
+  }
+
+  stages {
+    stage('Clean') { steps { deleteDir() } }
+    stage('Checkout') { steps { checkout scm } }
+
+    stage('Run Playwright (Docker)') {
+      steps {
+        sh '''
+          set -e
+          docker run --rm \
+            -e BASE_URL="${BASE_URL}" \
+            -e BROWSER="${BROWSER}" \
+            -e CI="true" \
+            -v "$(pwd)":/work -w /work \
+            mcr.microsoft.com/playwright:v1.58.2-jammy \
+            bash -lc "npm ci && npx playwright test tests/regression --project=${BROWSER} --grep @${SUITE} --reporter=html"
+        '''
+      }
+    }
+
+    stage('Publish report') {
+      steps {
+        publishHTML(target: [
+          reportDir: 'playwright-report',
+          reportFiles: 'index.html',
+          reportName: "Playwright ${params.SUITE} (${params.BROWSER})",
+          keepAll: true,
+          alwaysLinkToLastBuild: true,
+          allowMissing: true
+        ])
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'playwright-report/**,test-results/**', allowEmptyArchive: true
+    }
+  }
+}
