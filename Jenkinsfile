@@ -4,50 +4,33 @@ pipeline {
 
   stages {
     stage('Clean Workspace') {
-      steps {
-        deleteDir()
-      }
+      steps { deleteDir() }
     }
 
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-
-    stage('Debug workspace') {
-      steps {
-        sh '''
-          set -e
-          echo "=== Workspace ==="
-          pwd
-          ls -la
-          echo "=== Must exist ==="
-          test -f package.json && echo "OK package.json" || (echo "MISSING package.json" && exit 2)
-          test -f package-lock.json && echo "OK package-lock.json" || (echo "MISSING package-lock.json" && exit 2)
-        '''
-      }
+      steps { checkout scm }
     }
 
     stage('Regression (Playwright via Docker)') {
-        steps {
-            sh '''
-            set -e
-            docker --version
+      steps {
+        sh '''
+          set -e
+          docker --version
 
-            # Detecta el volumen real donde vive /var/jenkins_home
-            JENKINS_VOL="$(docker volume ls -q | grep -E 'jenkins_home$|_jenkins_home$' | head -n 1)"
-            echo "Using Jenkins volume: $JENKINS_VOL"
-            test -n "$JENKINS_VOL"
+          # Detecta el volumen real donde vive /var/jenkins_home (jenkins_home)
+          JENKINS_VOL="$(docker volume ls -q | grep -E 'jenkins_home$|_jenkins_home$' | head -n 1)"
+          echo "Using Jenkins volume: $JENKINS_VOL"
+          test -n "$JENKINS_VOL"
 
-            docker run --rm \
-                -v "$JENKINS_VOL":/var/jenkins_home \
-                -w /var/jenkins_home/workspace/Playwright \
-                mcr.microsoft.com/playwright:v1.50.0-jammy \
-                bash -lc 'pwd && ls -la && npm ci && npx playwright test --reporter=html'
-            '''
-        }
-        }
+          # Corre Playwright usando el workspace real dentro del volumen
+          docker run --rm \
+            -v "$JENKINS_VOL":/var/jenkins_home \
+            -w /var/jenkins_home/workspace/Playwright \
+            mcr.microsoft.com/playwright:v1.50.0-jammy \
+            bash -lc 'pwd && ls -la && npm ci && npx playwright test --reporter=html'
+        '''
+      }
+    }
 
     stage('Publish report') {
       steps {
