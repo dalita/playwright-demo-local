@@ -8,20 +8,19 @@ pipeline {
     }
 
    stage('Regression (Playwright via Docker)') {
-        steps {
-            sh '''
-            set -e
-            docker --version
-            docker pull mcr.microsoft.com/playwright:v1.50.0-jammy
+  steps {
+    sh '''
+      set -e
+      docker --version
 
-            docker run --rm \
-                -v "$PWD":/work \
-                -w /work \
-                mcr.microsoft.com/playwright:v1.50.0-jammy \
-                bash -lc "(test -f package-lock.json && npm ci || npm install) && npx playwright test --reporter=html"
-            '''
-        }
-        }
+      docker run --rm \
+        -v "$PWD":/work \
+        -w /work \
+        mcr.microsoft.com/playwright:v1.50.0-jammy \
+        bash -lc "pwd && ls -la && (test -f package-lock.json && npm ci || npm install) && npx playwright test --reporter=html"
+    '''
+  }
+}
 
     stage('Publish report') {
       steps {
