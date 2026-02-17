@@ -55,7 +55,6 @@ pipeline {
 
     stage('Publish report') {
         steps {
-            script { }
             publishHTML(target: [
             reportDir: 'playwright-report',
             reportFiles: 'index.html',
@@ -65,7 +64,7 @@ pipeline {
             allowMissing: true
             ])
         }
-        }
+    }
   }
 
   post {
